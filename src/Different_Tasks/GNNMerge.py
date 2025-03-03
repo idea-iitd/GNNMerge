@@ -48,64 +48,6 @@ def init_models(nc_dataset, lp_dataset, model_name, device, hidden_dim=128):
     
     return nc_model, lp_model, model3_backbone
 
-def create_masks(dataset):
-    N = dataset.num_nodes
-    labels = len(dataset.label_names)
-    classes_set1 = set(range(0, (labels+1)//2))
-    classes_set2 = set(range((labels+1)//2, labels))
-    
-    train_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    train_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    test_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    test_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    val_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    val_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    
-    train_indices = dataset.train_masks[0]
-    val_indices = dataset.val_masks[0]
-    test_indices = dataset.test_masks[0]
-    
-    # Get labels for these indices
-    train_labels = dataset.y[train_indices]
-    val_labels = dataset.y[val_indices]
-    test_labels = dataset.y[test_indices]
-
-    # Create a copy of the original labels before modifying
-    original_y = dataset.y.clone()
-
-    # Assign data points to respective masks based on their labels
-    for idx in train_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            train_mask1[idx] = True
-        elif label in classes_set2:
-            train_mask2[idx] = True
-
-    for idx in test_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            test_mask1[idx] = True
-        elif label in classes_set2:
-            test_mask2[idx] = True
-
-    for idx in val_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            val_mask1[idx] = True
-        elif label in classes_set2:
-            val_mask2[idx] = True
-
-    # Create a mapping for second model label
-    label_mapping = {old_label: new_label for new_label, old_label in enumerate(sorted(list(classes_set2)))}
-    # Adjust labels for second model using the mapping
-    dataset.y = original_y.clone()  # Reset to original labels
-    for idx in range(len(dataset.y)):
-        if (train_mask2[idx] or test_mask2[idx] or val_mask2[idx]):
-            dataset.y[idx] = label_mapping[dataset.y[idx].item()]
-
-    return (train_mask1, train_mask2, val_mask1, val_mask2, 
-            test_mask1, test_mask2, classes_set1, classes_set2)
-
 def hook_fn(module, input, output, outs, ins, layer_name):
         outs[layer_name] = output
         ins[layer_name] = input
@@ -223,10 +165,10 @@ def merge_model(nc_model, lp_model, merged_backbone,
             partial(hook_fn, outs=lp_outputs, ins=lp_inputs, layer_name=layer_name)))
 
     #Single forward pass to compute the inputs and outputs of merged models    
-    _  = nc_model.backbone(dataset)
-    _  = lp_model(dataset)
+    _  = nc_model.backbone(nc_dataset)
+    _  = lp_model(lp_dataset)
 
-    optimizer = torch.optim.Adam(model3_backbone.parameters(), lr=5e-2, betas=(0.9, 0.999), weight_decay=0.)
+    optimizer = torch.optim.Adam(merged_backbone.parameters(), lr=5e-2, betas=(0.9, 0.999), weight_decay=0.)
     criterion = nn.MSELoss(reduction='mean')
 
     print(f"\nStarting Merging Model")
@@ -312,7 +254,7 @@ def main():
 
     # Perform merging
     logs = merge_model(
-        nc_model = nc_model, lp_model = lp_model, merged_backbone = model3_backbone
+        nc_model = nc_model, lp_model = lp_model, merged_backbone = model3_backbone,
         nc_dataset=nc_dataset, lp_dataset = lp_train_data, lp_val_data = lp_val_data, lp_test_data = lp_test_data, num_layers=2,
         nc_dataset_name=args.nc_dataset_name, lp_dataset_name = args.lp_dataset_name, model_name=args.model_name,
         logs_path=args.logs_path

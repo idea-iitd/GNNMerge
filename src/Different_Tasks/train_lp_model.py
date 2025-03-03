@@ -25,7 +25,7 @@ def get_model(model_name, input_dim, device):
     elif model_name == "sage":
         model_backbone = SageBackbone(input_dim, hidden_dim).to(device)
     else:
-        raise ValueError(f"Unknown model type: {model_name}. Available models: gnn, sage")
+        raise ValueError(f"Unknown model type: {model_name}. Available models: gcn, sage")
     
     return model_backbone.to(device)
 

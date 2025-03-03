@@ -124,8 +124,25 @@ def evaluate(model3_backbone, mlp1, mlp2, dataset, train_mask1, train_mask2, val
 
 def least_squares(X1, X2, Y1, Y2):
     X = torch.cat([X1,X2], dim=0)
-    Y = torch.cat([Y1,Y2], dim=0)
-    W = torch.linalg.lstsq(X, Y).solution
+    Y = torch.cat([Y1,Y2], dim=0)    
+    # Compute XtX and XtY
+    XtX = X.T @ X
+    XtY = X.T @ Y
+    
+    # Add regularization
+    epsilon = 1e-6
+    n = XtX.size(0)
+    reg_matrix = epsilon * torch.eye(n, device=XtX.device)
+    XtX_reg = XtX + reg_matrix
+    try:
+        W = torch.linalg.solve(XtX_reg, XtY)
+    except RuntimeError:
+        try:
+            XtX_reg = XtX + (epsilon * 100) * torch.eye(n, device=XtX.device)
+            W = torch.linalg.solve(XtX_reg, XtY)
+        except RuntimeError:
+            print("Warning: Using pseudo-inverse as matrix is still singular")
+            W = torch.linalg.pinv(XtX_reg) @ XtY
     return W
 
 def solve_lsq_gnn(model1_outputs, model1_inputs, model2_outputs, model2_inputs, backbone3, dataset, num_layers, train_mask1, train_mask2):
@@ -135,10 +152,10 @@ def solve_lsq_gnn(model1_outputs, model1_inputs, model2_outputs, model2_inputs, 
         model2_out = model2_outputs[layer_name]
         model2_inp = model2_inputs[layer_name]
         
-        input1 = model1_inp[0][train_mask1 | val_mask1 | test_mask1]
-        input2 = model2_inp[0][train_mask2 | val_mask2 | test_mask2]
-        target1 = model1_out[train_mask1 | val_mask1 | test_mask1]
-        target2 = model2_out[train_mask2 | val_mask2 | test_mask2]
+        input1 = model1_inp[0][train_mask1]
+        input2 = model2_inp[0][train_mask2]
+        target1 = model1_out[train_mask1]
+        target2 = model2_out[train_mask2]
         
         n1 = input1.shape[0]
         n2 = input2.shape[0]

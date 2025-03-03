@@ -16,7 +16,7 @@ import argparse
 def setup_args():
     parser = argparse.ArgumentParser(description='Train label split models')
     parser.add_argument('--dataset', type=str, required=True, help='Name of the dataset')
-    parser.add_argument('--model', type=str, required=True, choices=['gnn', 'sage'], help='Model architecture to use')
+    parser.add_argument('--model', type=str, required=True, choices=['gcn', 'sage'], help='Model architecture to use')
     parser.add_argument('--data_path', type=str, required=True, help='Path to the dataset file')
     parser.add_argument('--model1_save_path', type=str, required=True, help='Path to save Model 1')
     parser.add_argument('--model2_save_path', type=str, required=True, help='Path to save Model 2')

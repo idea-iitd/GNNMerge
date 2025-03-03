@@ -53,73 +53,15 @@ def init_models(datasets, model_name, device, hidden_dim=128):
         for dataset in datasets:
             input_dim = dataset.x.size(1)
             labels = len(dataset.label_names)
-            backbone =  SageBackboneBackbone(input_dim, hidden_dim).to(device)
+            backbone =  SageBackbone(input_dim, hidden_dim).to(device)
             mlp = GNNMLP(hidden_dim,labels).to(device)
             model_backbones.append(backbone)
             model_mlps.append(mlp)
-        merged_backbone = SageBackboneBackbone(input_dim, hidden_dim).to(device)
+        merged_backbone = SageBackbone(input_dim, hidden_dim).to(device)
     else:
         raise ValueError(f"Unknown model type: {model_name}. Available models: gcn, sage")
     
     return model_backbones, model_mlps, merged_backbone
-
-def create_masks(dataset):
-    N = dataset.num_nodes
-    labels = len(dataset.label_names)
-    classes_set1 = set(range(0, (labels+1)//2))
-    classes_set2 = set(range((labels+1)//2, labels))
-    
-    train_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    train_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    test_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    test_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    val_mask1 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    val_mask2 = torch.zeros(N, dtype=torch.bool, device='cpu')
-    
-    train_indices = dataset.train_masks[0]
-    val_indices = dataset.val_masks[0]
-    test_indices = dataset.test_masks[0]
-    
-    # Get labels for these indices
-    train_labels = dataset.y[train_indices]
-    val_labels = dataset.y[val_indices]
-    test_labels = dataset.y[test_indices]
-
-    # Create a copy of the original labels before modifying
-    original_y = dataset.y.clone()
-
-    # Assign data points to respective masks based on their labels
-    for idx in train_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            train_mask1[idx] = True
-        elif label in classes_set2:
-            train_mask2[idx] = True
-
-    for idx in test_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            test_mask1[idx] = True
-        elif label in classes_set2:
-            test_mask2[idx] = True
-
-    for idx in val_indices:
-        label = dataset.y[idx].item()
-        if label in classes_set1:
-            val_mask1[idx] = True
-        elif label in classes_set2:
-            val_mask2[idx] = True
-
-    # Create a mapping for second model label
-    label_mapping = {old_label: new_label for new_label, old_label in enumerate(sorted(list(classes_set2)))}
-    # Adjust labels for second model using the mapping
-    dataset.y = original_y.clone()  # Reset to original labels
-    for idx in range(len(dataset.y)):
-        if (train_mask2[idx] or test_mask2[idx] or val_mask2[idx]):
-            dataset.y[idx] = label_mapping[dataset.y[idx].item()]
-
-    return (train_mask1, train_mask2, val_mask1, val_mask2, 
-            test_mask1, test_mask2, classes_set1, classes_set2)
 
 def hook_fn(module, input, output, outs, ins, layer_name):
         outs[layer_name] = output
@@ -167,7 +109,7 @@ def train(model_outputs, model_inputs, merged_backbone, optimizer, criterion):
     optimizer.step()
     return losses
 
-def merge_model(models, merged_backbone, datasets, num_layers, dataset_names, logs_path, model_name, logs_path):
+def merge_model(models, merged_backbone, datasets, num_layers, dataset_names, model_name, logs_path):
     num_epochs = 1000
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     logs = {
@@ -184,9 +126,10 @@ def merge_model(models, merged_backbone, datasets, num_layers, dataset_names, lo
     total_time = 0
 
     num_models = len(models)  # Number of models
-    model_outputs = {f"model{i+1}_outputs": {} for i in range(num_models)}
-    model_inputs = {f"model{i+1}_inputs": {} for i in range(num_models)}
-    model_hooks = {f"model{i+1}_hooks": [] for i in range(num_models)}
+
+    model_inputs = [{} for _ in range(num_models)]
+    model_outputs = [{} for _ in range(num_models)]
+    model_hooks = [[] for i in range(num_models)]
     model_mlps = []
 
     for j in range(num_models):
@@ -225,17 +168,17 @@ def merge_model(models, merged_backbone, datasets, num_layers, dataset_names, lo
 
         logs['epochs'].append(epoch)
         for i in range(num_models):
-            logs[f'train_acc{i+1}'].append(train_acc[i].item())
-            logs[f'val_acc{i+1}'].append(val_acc[i].item())
-            logs[f'test_acc{i+1}'].append(test_acc[i].item())
-            logs[f'train_loss{i+1}'].append(train_loss[i].item())
+            logs[f'train_acc{i+1}'].append(train_accs[i].item())
+            logs[f'val_acc{i+1}'].append(val_accs[i].item())
+            logs[f'test_acc{i+1}'].append(test_accs[i].item())
+            logs[f'train_loss{i+1}'].append(train_losses[i].item())
         logs['time_per_epoch'].append(epoch_time)
         
         # Print progress
         if (epoch + 1) % 50 == 0:
             print(f"Epoch {epoch+1}/1000:")
             for i in range(len(models)):
-                print(f"Dataset{i+1} - Train: {train_acc[i]:.4f}, Val: {val_acc[i]:.4f}, Test: {test_acc[i]:.4f}")
+                print(f"Dataset{i+1} - Train: {train_accs[i]:.4f}, Val: {val_accs[i]:.4f}, Test: {test_accs[i]:.4f}")
             print(f"Average epoch time: {total_time/(epoch+1):.2f}s")
             print("-" * 50)
         
@@ -271,7 +214,7 @@ def main():
     for i in range(len(models)):
         models[i].load_state_dict(torch.load(args.model_paths[i])['model_state_dict'])
         for param in models[i].parameters():
-            parma.requires_grad = False
+            param.requires_grad = False
     
     # Perform merging
     logs = merge_model(
