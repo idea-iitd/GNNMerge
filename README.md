@@ -8,7 +8,7 @@ This is the PyTorch implementation for GNNMERGE: Merging of GNN Models Without A
 
 For the datasets used for in-domain model merging experiments, you need to use `download_datasets_in-domain.py` as follows:
 ```bash
-python3 --dataset <dataset_name> --save_path <path_to_save_dataset>
+python3 download_datasets_in-domain.py --dataset <dataset_name> --save_path <path_to_save_dataset>
 ```
 
 For the datasets used for cross-domain and different tasks model merging, you can download the datasets from the following links:
@@ -68,11 +68,11 @@ python3 train_lp_model.py --dataset_name <dataset_name> --model_name <model_name
 
 To use **GNNMerge** to merge in-domain models, use:
 ```bash
-python GNNMerge.py --dataset_name <dataset_name> --model_name <model_name> --data_path <path_to_dataset> --model1_path <path_to_first_model> --model2_path <path_to_second_model> --logs_path <path_to_save_logs>
+python3 GNNMerge.py --dataset_name <dataset_name> --model_name <model_name> --data_path <path_to_dataset> --model1_path <path_to_first_model> --model2_path <path_to_second_model> --logs_path <path_to_save_logs>
 ```
 To use **GNNMerge++** to merge in-domain models, use:
 ```bash
-python GNNMerge++.py --dataset_name <dataset_name> --model_name <model_name> --data_path <path_to_dataset> --model1_path <path_to_first_model> --model2_path <path_to_second_model> --logs_path <path_to_save_logs>
+python3 GNNMerge++.py --dataset_name <dataset_name> --model_name <model_name> --data_path <path_to_dataset> --model1_path <path_to_first_model> --model2_path <path_to_second_model> --logs_path <path_to_save_logs>
 ```
 
 ### Cross-domain
@@ -81,22 +81,22 @@ python GNNMerge++.py --dataset_name <dataset_name> --model_name <model_name> --d
 
 To use **GNNMerge** to merge cross-domain models, use:
 ```bash
-python GNNMerge.py --data_paths <path_to_dataset1> <path_to_dataset2> ... --dataset_names <dataset_name1> <dataset_name2> ... --model_paths <path_to_model1> <path_to_model2> ... --model_name <model_name> --logs_path <path_to_save_logs>
+python3 GNNMerge.py --data_paths <path_to_dataset1> <path_to_dataset2> ... --dataset_names <dataset_name1> <dataset_name2> ... --model_paths <path_to_model1> <path_to_model2> ... --model_name <model_name> --logs_path <path_to_save_logs>
 ```
 
 To use **GNNMerge++** to merge cross-domain models, use:
 ```bash
-python GNNMerge++.py --data_paths <path_to_dataset1> <path_to_dataset2> ... --dataset_names <dataset_name1> <dataset_name2> ... --model_paths <path_to_model1> <path_to_model2> ... --model_name <model_name> --logs_path <path_to_save_logs>
+python3 GNNMerge++.py --data_paths <path_to_dataset1> <path_to_dataset2> ... --dataset_names <dataset_name1> <dataset_name2> ... --model_paths <path_to_model1> <path_to_model2> ... --model_name <model_name> --logs_path <path_to_save_logs>
 ```
 
 ### Different Tasks
 
 To use **GNNMerge** to merge node classification and link prediction models, use:
 ```bash
-python GNNMerge.py --nc_dataset_name <nc_dataset_name> --lp_dataset_name <lp_dataset_name> --model_name <model_name> --nc_data_path <path_to_nc_dataset> --lp_data_path <path_to_lp_dataset> --nc_model_path <path_to_nc_model> --lp_model_path <path_to_lp_model> --logs_path <path_to_save_logs>
+python3 GNNMerge.py --nc_dataset_name <nc_dataset_name> --lp_dataset_name <lp_dataset_name> --model_name <model_name> --nc_data_path <path_to_nc_dataset> --lp_data_path <path_to_lp_dataset> --nc_model_path <path_to_nc_model> --lp_model_path <path_to_lp_model> --logs_path <path_to_save_logs>
 ```
 
 To use **GNNMerge++** to merge node classification and link prediction models, use:
 ```bash
-python GNNMerge++.py --nc_dataset_name <nc_dataset_name> --lp_dataset_name <lp_dataset_name> --model_name <model_name> --nc_data_path <path_to_nc_dataset> --lp_data_path <path_to_lp_dataset> --nc_model_path <path_to_nc_model> --lp_model_path <path_to_lp_model> --logs_path <path_to_save_logs>
+python3 GNNMerge++.py --nc_dataset_name <nc_dataset_name> --lp_dataset_name <lp_dataset_name> --model_name <model_name> --nc_data_path <path_to_nc_dataset> --lp_data_path <path_to_lp_dataset> --nc_model_path <path_to_nc_model> --lp_model_path <path_to_lp_model> --logs_path <path_to_save_logs>
 ```
