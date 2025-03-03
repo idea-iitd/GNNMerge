@@ -2,6 +2,8 @@
 
 This is the PyTorch implementation for GNNMERGE: Merging of GNN Models Without Accessing Training Data
 
+![GNNMerge](Model_Merging.png)
+
 ## Downloading Datasets
 
 For the datasets used for in-domain model merging experiments, you need to use `download_datasets_in-domain.py` as follows:
